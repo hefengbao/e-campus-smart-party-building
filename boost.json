@@ -1,0 +1,22 @@
+{
+    "agents": [
+        "codex",
+        "copilot"
+    ],
+    "cloud": false,
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch": false,
+    "packages": [
+        "filament/filament"
+    ],
+    "sail": false,
+    "skills": [
+        "infer-conventions",
+        "laravel-best-practices",
+        "testing-best-practices",
+        "configuring-horizon",
+        "tailwindcss-development",
+        "filament-development"
+    ]
+}

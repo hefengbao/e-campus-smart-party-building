@@ -1,0 +1,35 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Models\Admin;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<Admin>
+ */
+class AdminFactory extends Factory
+{
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'user_id' => User::factory(),
+            'name' => fake()->name(),
+            'status' => '启用',
+        ];
+    }
+
+    /**
+     * 停用。
+     */
+    public function disabled(): static
+    {
+        return $this->state(fn () => ['status' => '停用']);
+    }
+}
