@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Support\PanelUserMenu;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -10,6 +11,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -41,6 +43,15 @@ class BranchPanelProvider extends PanelProvider
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => view('filament.components.panel-switcher')->render(),
+            )
+            ->userMenuItems(PanelUserMenu::items())
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_PROFILE_AFTER,
+                fn (): string => view('filament.components.user-personal-info')->render(),
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

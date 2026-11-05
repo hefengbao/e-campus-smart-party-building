@@ -12,8 +12,12 @@ class ExampleTest extends TestCase
      */
     public function test_the_application_returns_a_successful_response(): void
     {
+        // member panel 的 path 设为 / 作为默认入口，未登录时重定向至 /login
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        $response->assertRedirect('/login');
+
+        $loginResponse = $this->get('/login');
+        $loginResponse->assertStatus(200);
     }
 }

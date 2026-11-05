@@ -2,9 +2,11 @@
 
 namespace App\Filament\Member\Widgets;
 
+use App\Models\Trainee;
 use App\Models\TrainingHour;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
 class TrainingProfileWidget extends StatsOverviewWidget
@@ -13,26 +15,40 @@ class TrainingProfileWidget extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        $memberId = Auth::user()?->member?->id;
+        $user = Auth::user();
 
-        if ($memberId === null) {
+        if ($user === null) {
+            return [];
+        }
+
+        $memberId = $user->member?->id ?? $user->member_id;
+        $traineeId = Trainee::query()->where('staff_no', $user->id)->value('id');
+
+        if ($memberId === null && $traineeId === null) {
             return [
-                Stat::make('培训学时', '—')
-                    ->description('当前账号未关联党员档案')
+                Stat::make('培训学时', '0')
+                    ->description('暂无已关联的党员或干部学员档案')
                     ->color('gray'),
             ];
         }
 
-        $effective = TrainingHour::query()
-            ->where('member_id', $memberId)
-            ->where('status', '已生效');
+        $baseQuery = TrainingHour::query()->where(function (Builder $query) use ($memberId, $traineeId): void {
+            if ($memberId !== null) {
+                $query->where('member_id', $memberId);
+            }
+
+            if ($traineeId !== null) {
+                $query->orWhere('trainee_id', $traineeId);
+            }
+        });
+
+        $effective = (clone $baseQuery)->where('status', '已生效');
 
         $total = (float) (clone $effective)->sum('hours');
         $online = (float) (clone $effective)->where('training_category', '网络自学')->sum('hours');
         $offline = (float) (clone $effective)->where('training_category', '集中培训')->sum('hours');
 
-        $pendingHours = (float) TrainingHour::query()
-            ->where('member_id', $memberId)
+        $pendingHours = (float) (clone $baseQuery)
             ->where('status', '待审核')
             ->sum('hours');
 

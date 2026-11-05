@@ -56,12 +56,12 @@ class Phase3ResourcesTest extends TestCase
     {
         $this->seedDb();
 
-        // member 是默认面板，无需 setCurrentPanel
+        // member 是默认面板（path 为 /），无需 setCurrentPanel
         $this->be($this->memberUser());
 
-        $this->get('/member/training-hours')->assertSuccessful();
-        $this->get('/member/transfers')->assertSuccessful();
-        $this->get('/member/abroad-applications')->assertSuccessful();
+        $this->get('/training-hours')->assertSuccessful();
+        $this->get('/transfers')->assertSuccessful();
+        $this->get('/abroad-applications')->assertSuccessful();
     }
 
     public function test_member_transfer_full_approval_flow(): void

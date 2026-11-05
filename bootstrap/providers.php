@@ -1,12 +1,21 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\Filament\BranchPanelProvider;
+use App\Providers\Filament\CollegePanelProvider;
+use App\Providers\Filament\MemberPanelProvider;
+use App\Providers\Filament\OrgPanelProvider;
+use App\Providers\Filament\SysadminPanelProvider;
+use App\Providers\Filament\TestPanelProvider;
+use App\Providers\HorizonServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\Filament\BranchPanelProvider::class,
-    App\Providers\Filament\CollegePanelProvider::class,
-    App\Providers\Filament\MemberPanelProvider::class,
-    App\Providers\Filament\OrgPanelProvider::class,
-    App\Providers\Filament\SysadminPanelProvider::class,
-    App\Providers\Filament\TestPanelProvider::class,
-    App\Providers\HorizonServiceProvider::class,
+    AppServiceProvider::class,
+    BranchPanelProvider::class,
+    CollegePanelProvider::class,
+    MemberPanelProvider::class,
+    OrgPanelProvider::class,
+    SysadminPanelProvider::class,
+    TestPanelProvider::class,
+    HorizonServiceProvider::class,
 ];

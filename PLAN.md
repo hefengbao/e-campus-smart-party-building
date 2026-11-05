@@ -4,8 +4,8 @@
 
 | 决策点 | 方案 | 理由 |
 |---|---|---|
-| 面板形态 | **多面板**：5 个独立 Filament 面板，一个模块一个工作台；**member 为默认面板**，所有登录用户可进 | 面板即身份上下文：导航、驾驶舱、数据范围天然隔离；一人多身份通过跨面板跳转解决 |
-| 身份模型 | `User`（基础账号：工号/姓名/邮箱，登录认证）↔ `Member`（党员档案：详细信息）**一一对应（HasOne，双向）**；党员相关业务通过 `member_id` 关联获取 | 账号与档案解耦：未开通账号的党员也可先建档；账号主键 = 工号/学号（字符串） |
+| 面板形态 | **多面板**：5 个独立 Filament 面板，**member 为全员个人统一工作台（默认面板）**，所有个人业务收敛在此；其他 4 个面板纯粹承担管理功能 | 个人端与管理端二元化切分：个人业务与各级审批管理天然隔离；一人多身份通过跨面板跳转解决 |
+| 身份模型 | `User`（基础账号：工号/姓名/邮箱，登录认证）↔ `Member`（党员档案：详细信息）**一一对应（HasOne，双向）**；党员相关业务通过 `member_id` 关联获取 | 账号与档案解耦：未开通账号的党员也可先建档；党外干部与协同员依托 Trainee 同样可在个人工作台享受服务 |
 | 面板准入 | 按身份记录控制：branch/college 凭**在任委员**（`CommitteeMember`），org 凭**在职组织部工作人员**（`OrgStaff`），sysadmin 凭**启用管理员**（`Admin`） | 委员会职务可配置（党支部书记/组织委员/党委书记等），任命方式可配置（选举/指派）；在任状态（离任/任期到期）自动失去面板权限 |
 | 权限模型 | 面板准入（身份记录）× 角色授权（`RoleGrant`，含数据范围组织）× Laravel Policy | 授权必须走 Policy，不能只靠隐藏 UI；无角色授权时数据范围回退到在任委员所在组织 |
 | 数据范围 | Eloquent 全局作用域 / 专用 Query Scope，按当前面板对应身份收敛 | demo 契约明确"数据范围由后端收敛"，Filament 表格查询统一走 scope |
@@ -18,12 +18,12 @@
 
 | demo 角色 | 面板 | 准入依据（新架构） | 数据范围 |
 |---|---|---|---|
-| `member` 党员 | 党员个人面板（`/member`，**默认面板**） | 所有登录用户 | 本人业务 |
-| `branch` 支部管理员 | 党支部面板（`/branch`） | 关联党员在任**党支部委员会委员**（`CommitteeMember`，组织 level=3） | 委员会所在支部及下级 |
-| `college` 分党委管理员 | 二级党委面板（`/college`） | 关联党员在任**党委委员会委员**（`CommitteeMember`，组织 level=2） | 委员会所在院级组织及下属支部 |
-| `training_coordinator` 培训协同员 | 二级党委面板（协同端能力，按权限裁剪） | 角色授权（`RoleGrant`） | 绑定组织；仅可提交学时，不可看名册 |
-| `org_dept` 组织部管理员 | 党委组织部面板（`/org`） | **在职组织部工作人员**（`OrgStaff`） | 全校 |
-| `super_admin` 超级管理员 | 系统管理员面板（`/sysadmin`） | **启用系统管理员**（`Admin`） | 全校 + 系统管理 |
+| `member` 全员个人 | **个人统一工作台（`/member`，默认工作台）** | 所有登录用户（党员、积极分子、非党员干部、普通教工） | 本人个人业务 |
+| `branch` 支部管理员 | 党支部管理面板（`/branch`） | 关联党员在任**党支部委员会委员**（`CommitteeMember`，组织 level=3） | 委员会所在支部及下级 |
+| `college` 分党委管理员 | 二级党委管理面板（`/college`） | 关联党员在任**党委委员会委员**（`CommitteeMember`，组织 level=2） | 委员会所在院级组织及下属支部 |
+| `training_coordinator` 培训协同员 | 个人工作台 / 二级党委协同 | 角色授权（`RoleGrant`） | 个人业务在 member；协同提交在 college 裁剪 |
+| `org_dept` 组织部管理员 | 党委组织部管理面板（`/org`） | **在职组织部工作人员**（`OrgStaff`） | 全校党务管理 |
+| `super_admin` 超级管理员 | 系统管理员管理面板（`/sysadmin`） | **启用系统管理员**（`Admin`） | 全校 + 系统底层运维 |
 
 委员会职务可配置（字典 `committee_branch_position` / `committee_college_position`）：党支部书记、党支部副书记、组织委员、宣传委员、纪检委员、青年委员；党委书记、党委副书记等。任命方式可配置（字典 `appointment_method`）：选举、指派。在任状态：`status=在任` 且 `term_end` 为空或未到期；离任/到期自动失去面板权限与数据范围。
 
@@ -314,3 +314,14 @@ Panel::configureUsing(function (Panel $panel): void {
 - 系统管理员面板（`/sysadmin`：`AuditLogResource` 只读查询、`DictResource` 数据字典管理、`ConfigResource` 系统参数管理、`UserResource` 账号与授权总控）
 - 全量 Feature 测试（覆盖各阶段核心业务、Policy、数据范围、状态机流转与审计联动，`tests/Feature/Phase5CockpitAndAdminTest.php` 10 用例覆盖，全套测试 61 用例、256 断言）
 - Pint 格式化与回归验证全部通过，系统具备完整投产标准
+
+### 架构演进与优化：个人默认工作台（Member Portal）全业务统筹 ✅ 已完成
+- **定位革新**：`/member` 作为默认工作台，彻底升级为“个人全员统一工作台”（Personal Portal），覆盖正式党员、预备党员、入党积极分子/申请人、非党员中层干部（学员库 Trainee）、普通教职工等所有个人业务；其他 4 个面板纯粹承担管理功能（Management Portal）。
+- **个人业务资源补齐**：
+  - `FeeRecordResource`：个人党费交纳流水只读查询；
+  - `PhoneChangeRequestResource`：个人自主提报联系电话变更申请；
+  - `DevelopmentCaseResource`：入党申请人/积极分子/预备党员查看本人五阶段 25 步骤全纪实与材料待办；
+  - `WorkshopActivityResource`：全员浏览全校已发布公开工作坊活动广场；
+  - `TrainingHourResource` / `TrainingProfileWidget`：全面兼容 Trainee 干部培训学员档案，支持党外中层干部查询个人培训学时；
+  - `MemberOverviewWidget`：自适应个人身份画像（党员画像、党外干部画像、积极分子发展画像、普通教工画像）。
+- **质量保障**：新增 `tests/Feature/MemberPersonalPortalTest.php`（7 个测试用例，27 个断言），全量测试套件达到 **68 个测试用例，283 个断言，100% 通过**。
