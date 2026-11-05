@@ -33,7 +33,7 @@ class BranchOverviewWidget extends StatsOverviewWidget
         // 支部党员总数与结构
         $membersQuery = Member::query()
             ->where('status', '正常')
-            ->when($orgIds !== [], fn ($q) => $q->whereIn('org_id', $orgIds));
+            ->visibleTo($orgIds);
 
         $totalMembers = (clone $membersQuery)->count();
         $formalCount = (clone $membersQuery)->where('identity', '正式党员')->count();

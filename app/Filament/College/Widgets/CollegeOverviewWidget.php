@@ -42,7 +42,7 @@ class CollegeOverviewWidget extends StatsOverviewWidget
         // 辖属党员总数
         $membersQuery = Member::query()
             ->where('status', '正常')
-            ->when($orgIds !== [], fn ($q) => $q->whereIn('org_id', $orgIds));
+            ->visibleTo($orgIds);
 
         $totalMembers = (clone $membersQuery)->count();
         $formalCount = (clone $membersQuery)->where('identity', '正式党员')->count();
@@ -64,7 +64,7 @@ class CollegeOverviewWidget extends StatsOverviewWidget
         // 3. 因私出国（境）「待院级审核」
         $pendingAbroad = AbroadApplication::query()
             ->where('status', '待院级审核')
-            ->when($orgIds !== [], fn ($q) => $q->whereHas('member', fn ($mq) => $mq->whereIn('org_id', $orgIds)))
+            ->when($orgIds !== [], fn ($q) => $q->visibleTo($orgIds))
             ->count();
 
         $totalPendingReviews = $pendingMeetings + $pendingTransfers + $pendingAbroad;

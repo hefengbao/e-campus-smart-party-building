@@ -8,7 +8,6 @@ use App\Filament\Org\Resources\AbroadApplications\Pages\ListAbroadApplications;
 use App\Filament\Org\Resources\AbroadApplications\Schemas\AbroadApplicationForm;
 use App\Filament\Org\Resources\AbroadApplications\Tables\AbroadApplicationsTable;
 use App\Models\AbroadApplication;
-use App\Support\DataScope;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -43,11 +42,7 @@ class AbroadApplicationResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return DataScope::apply(
-            parent::getEloquentQuery(),
-            Auth::user(),
-            'member.org_id',
-        );
+        return parent::getEloquentQuery()->visibleTo(Auth::user()->scopedOrgIds());
     }
 
     public static function getRelations(): array

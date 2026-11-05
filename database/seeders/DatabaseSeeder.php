@@ -81,8 +81,7 @@ class DatabaseSeeder extends Seeder
             ->get()
             ->each(function (Organization $college): void {
                 Member::factory()
-                    ->for($college, 'organization')
-                    ->create();
+                    ->create(['org_id' => $college->id]);
             });
 
         Organization::query()
@@ -91,20 +90,17 @@ class DatabaseSeeder extends Seeder
             ->each(function (Organization $branch): void {
                 Member::factory()
                     ->count(4)
-                    ->for($branch, 'organization')
-                    ->create();
+                    ->create(['org_id' => $branch->id]);
 
                 Member::factory()
                     ->count(1)
                     ->probationary()
-                    ->for($branch, 'organization')
-                    ->create();
+                    ->create(['org_id' => $branch->id]);
 
                 Member::factory()
                     ->count(1)
                     ->teacher()
-                    ->for($branch, 'organization')
-                    ->create();
+                    ->create(['org_id' => $branch->id]);
             });
     }
 
@@ -141,7 +137,10 @@ class DatabaseSeeder extends Seeder
 
         // 党委委员（在任）：college 面板
         $collegeCommitteeMember = Member::query()
-            ->where('org_id', $college->id)
+            ->whereHas('organizationLinks', fn ($query) => $query
+                ->where('organization_id', $college->id)
+                ->where('is_primary', true)
+                ->where('status', '正常'))
             ->firstOrFail();
 
         $collegeUser = User::factory()
@@ -171,7 +170,10 @@ class DatabaseSeeder extends Seeder
 
         // 党支部委员（在任）：branch 面板
         $branchCommitteeMember = Member::query()
-            ->where('org_id', $branch->id)
+            ->whereHas('organizationLinks', fn ($query) => $query
+                ->where('organization_id', $branch->id)
+                ->where('is_primary', true)
+                ->where('status', '正常'))
             ->firstOrFail();
 
         $branchUser = User::factory()
@@ -194,7 +196,10 @@ class DatabaseSeeder extends Seeder
 
         // 普通党员：仅 member 面板（排除支部委员，避免与 branch 账号关联同一党员）
         $member = Member::query()
-            ->where('org_id', $branch->id)
+            ->whereHas('organizationLinks', fn ($query) => $query
+                ->where('organization_id', $branch->id)
+                ->where('is_primary', true)
+                ->where('status', '正常'))
             ->whereKeyNot($branchCommitteeMember->id)
             ->orderBy('id')
             ->firstOrFail();

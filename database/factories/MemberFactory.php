@@ -11,6 +11,17 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class MemberFactory extends Factory
 {
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Member $member): void {
+            $organizationId = $member->org_id;
+
+            if ($organizationId !== null && ! $member->primaryOrganizationLink()->exists()) {
+                $member->setPrimaryOrganization($organizationId);
+            }
+        });
+    }
+
     /**
      * Define the model's default state.
      *

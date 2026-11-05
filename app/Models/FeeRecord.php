@@ -44,6 +44,6 @@ class FeeRecord extends Model
      */
     public function scopeVisibleTo(Builder $query, array $orgIds): Builder
     {
-        return $query->whereHas('member', fn (Builder $q) => $q->whereIn('org_id', $orgIds));
+        return $query->whereHas('member', fn (Builder $memberQuery) => $memberQuery->visibleTo($orgIds));
     }
 }

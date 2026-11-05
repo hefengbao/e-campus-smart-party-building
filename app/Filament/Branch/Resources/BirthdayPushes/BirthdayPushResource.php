@@ -52,6 +52,6 @@ class BirthdayPushResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->whereHas('member', fn (Builder $query) => $query->whereIn('org_id', Auth::user()->scopedOrgIds()));
+            ->whereHas('member', fn (Builder $query) => $query->visibleTo(Auth::user()->scopedOrgIds()));
     }
 }

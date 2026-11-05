@@ -3,6 +3,7 @@
 namespace App\Filament\Org\Resources\Members\Schemas;
 
 use App\Models\Member;
+use App\Models\Organization;
 use App\Support\DataScope;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
@@ -85,14 +86,10 @@ class MemberForm
                     ->schema([
                         Select::make('org_id')
                             ->label('所在党支部')
-                            ->relationship(
-                                name: 'organization',
-                                titleAttribute: 'short_name',
-                                modifyQueryUsing: fn (Builder $query) => DataScope::applyToOrganizations(
-                                    $query,
-                                    Auth::user(),
-                                ),
-                            )
+                            ->options(fn (): array => DataScope::applyToOrganizations(
+                                Organization::query()->where('level', 3),
+                                Auth::user(),
+                            )->orderBy('short_name')->pluck('short_name', 'id')->all())
                             ->searchable()
                             ->preload()
                             ->required(),

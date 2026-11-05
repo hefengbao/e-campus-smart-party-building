@@ -330,7 +330,7 @@ class Phase3ResourcesTest extends TestCase
         $this->be($branchUser);
 
         $otherMember = Member::query()
-            ->where('org_id', $branchUser->scopedOrgIds()[0])
+            ->visibleTo($branchUser->scopedOrgIds())
             ->whereKeyNot($branchUser->member->id)
             ->firstOrFail();
 

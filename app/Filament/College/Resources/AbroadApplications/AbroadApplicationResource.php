@@ -56,7 +56,7 @@ class AbroadApplicationResource extends Resource
                 $orgIds !== [],
                 fn (Builder $query) => $query->whereHas(
                     'member',
-                    fn (Builder $q) => $q->whereIn('org_id', $orgIds),
+                    fn (Builder $memberQuery) => $memberQuery->visibleTo($orgIds),
                 ),
             );
     }

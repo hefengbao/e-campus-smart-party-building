@@ -133,7 +133,7 @@ super_admin ─▶ org_dept ─▶ college ─▶ branch ─▶ member
 | 模型 | 表 | 要点 |
 |---|---|---|
 | `Organization` | `organizations` | 三级树（`parent_id`/`level`/`path`）、`code` 唯一、`member_type`(tea/stu/mix) 派生 `nature`、`status`(正常/撤销/合并)、换届字段（`term_start_date`+`term_years` 推算到期）、名称沿革表 `organization_name_histories` |
-| `Member` | `members` | **主键 = 工号/学号（字符串）**；23+ 字段对齐 demo；`id_card` **encrypted + 应用层唯一校验**（加密后无法用数据库唯一约束）；`user_id` 可空唯一（关联账号，一一对应）；校验：入党−出生≥18 年、转正−入党≥1 年（不满足须 `special_note`）；`data_source` 标记 |
+| `Member` / `MemberOrganization` | `members` / `member_organization` | **主键 = 工号/学号（字符串）**；党员与组织通过独立关联表建立多对多关系，关联行记录 `is_primary`、`status`、起止日期；每位党员有一个正常主组织用于个人当前组织展示与流程归属；`id_card` **encrypted + 应用层唯一校验**；`user_id` 可空唯一；校验：入党−出生≥18 年、转正−入党≥1 年（不满足须 `special_note`）；`data_source` 标记 |
 | `User` | `users` | **主键 = 工号/学号（字符串）**；基础账号：`name`/`email`/`phone`/`sso_subject`/`member_id` 可空唯一；实现 `FilamentUser`；与 `Member` **双向 HasOne**（`users.member_id` ↔ `members.user_id`） |
 | `CommitteeMember` | `committee_members` | 委员会成员（支部/院级党委共用，按组织 `level` 区分）：`organization_id`×`member_id`×`position`（职务可配置）×`appointment_method`（选举/指派）×`term_start`/`term_end`（空=本届在任）×`status`（在任/离任）；控制 branch/college 面板准入 |
 | `OrgStaff` | `org_staff` | 组织部工作人员：`user_id` 唯一×`name`×`position`×`status`（在职/离职）；控制 org 面板准入 |

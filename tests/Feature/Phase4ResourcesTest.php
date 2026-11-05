@@ -209,8 +209,10 @@ class Phase4ResourcesTest extends TestCase
         // 造数据：预备党员 11 个月前入党 → 预备期到期预警（30 天内）
         $probationary = Member::factory()
             ->probationary()
-            ->for($branch, 'organization')
-            ->create(['join_party_date' => now()->subMonths(11)->format('Y-m-d')]);
+            ->create([
+                'org_id' => $branch->id,
+                'join_party_date' => now()->subMonths(11)->format('Y-m-d'),
+            ]);
 
         (new ScanAlertsJob)->handle();
 
@@ -314,8 +316,10 @@ class Phase4ResourcesTest extends TestCase
 
         // 8 天后周年：窗口外不生成
         $farMember = Member::factory()
-            ->for($branch, 'organization')
-            ->create(['join_party_date' => now()->subYears(3)->addDays(8)->format('Y-m-d')]);
+            ->create([
+                'org_id' => $branch->id,
+                'join_party_date' => now()->subYears(3)->addDays(8)->format('Y-m-d'),
+            ]);
 
         (new PushBirthdayJob)->handle();
 
@@ -366,12 +370,12 @@ class Phase4ResourcesTest extends TestCase
 
         $branchOrgId = $branchUser->scopedOrgIds()[0];
 
-        $inScopeMember = Member::factory()->for(Organization::find($branchOrgId), 'organization')->create();
+        $inScopeMember = Member::factory()->create(['org_id' => $branchOrgId]);
         $otherBranch = Organization::query()
             ->where('level', 3)
             ->whereKeyNot($branchOrgId)
             ->firstOrFail();
-        $outOfScopeMember = Member::factory()->for($otherBranch, 'organization')->create();
+        $outOfScopeMember = Member::factory()->create(['org_id' => $otherBranch->id]);
 
         $inScope = BirthdayPush::factory()->create(['member_id' => $inScopeMember->id]);
         BirthdayPush::factory()->create(['member_id' => $outOfScopeMember->id]);

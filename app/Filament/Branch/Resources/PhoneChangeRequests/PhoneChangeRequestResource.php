@@ -50,10 +50,9 @@ class PhoneChangeRequestResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return DataScope::apply(
-            parent::getEloquentQuery(),
-            Auth::user(),
-            'member.org_id',
+        return parent::getEloquentQuery()->whereHas(
+            'member',
+            fn (Builder $query) => $query->visibleTo(DataScope::visibleOrgIds(Auth::user())),
         );
     }
 }

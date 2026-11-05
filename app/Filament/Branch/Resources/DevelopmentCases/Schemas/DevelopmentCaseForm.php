@@ -28,7 +28,7 @@ class DevelopmentCaseForm
                                 ->when($record === null, fn (Builder $query) => $query->whereDoesntHave('developmentCase'))
                                 ->when(
                                     $orgIds = DataScope::visibleOrgIds(Auth::user()),
-                                    fn (Builder $query) => $query->whereIn('org_id', $orgIds),
+                                    fn (Builder $query) => $query->visibleTo($orgIds),
                                 )
                                 ->orderBy('name')
                                 ->pluck('name', 'id')

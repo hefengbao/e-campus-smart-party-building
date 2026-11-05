@@ -49,7 +49,7 @@ class OrgOverviewWidget extends StatsOverviewWidget
         // 党员总数
         $membersQuery = Member::query()
             ->where('status', '正常')
-            ->when($orgIds !== [], fn ($q) => $q->whereIn('org_id', $orgIds));
+            ->visibleTo($orgIds);
 
         $totalMembers = (clone $membersQuery)->count();
         $formalCount = (clone $membersQuery)->where('identity', '正式党员')->count();
@@ -65,7 +65,7 @@ class OrgOverviewWidget extends StatsOverviewWidget
         // 2. 出国（境）「待组织部审核」
         $pendingAbroad = AbroadApplication::query()
             ->where('status', '待组织部审核')
-            ->when($orgIds !== [], fn ($q) => $q->whereHas('member', fn ($mq) => $mq->whereIn('org_id', $orgIds)))
+            ->when($orgIds !== [], fn ($q) => $q->visibleTo($orgIds))
             ->count();
 
         // 3. 工作坊公开活动「待审核」

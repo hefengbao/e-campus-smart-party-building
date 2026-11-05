@@ -83,7 +83,7 @@ class BirthdayPushesTable
 
             BirthdayPush::query()
                 ->with(['member.organization'])
-                ->whereHas('member', fn ($query) => $query->whereIn('org_id', auth()->user()->scopedOrgIds()))
+                ->whereHas('member', fn ($query) => $query->visibleTo(auth()->user()->scopedOrgIds()))
                 ->orderBy('birthday_date', 'desc')
                 ->chunk(500, function ($rows) use ($out): void {
                     foreach ($rows as $row) {

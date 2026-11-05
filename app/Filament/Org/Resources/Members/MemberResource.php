@@ -8,7 +8,6 @@ use App\Filament\Org\Resources\Members\Pages\ListMembers;
 use App\Filament\Org\Resources\Members\Schemas\MemberForm;
 use App\Filament\Org\Resources\Members\Tables\MembersTable;
 use App\Models\Member;
-use App\Support\DataScope;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -16,7 +15,6 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Illuminate\Support\Facades\Auth;
 
 class MemberResource extends Resource
 {
@@ -60,11 +58,7 @@ class MemberResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return DataScope::apply(
-            parent::getEloquentQuery(),
-            Auth::user(),
-            'org_id',
-        );
+        return parent::getEloquentQuery()->visibleTo(auth()->user()->scopedOrgIds());
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder

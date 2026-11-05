@@ -30,7 +30,7 @@ class AttendeesRelationManager extends RelationManager
                 Select::make('member_id')
                     ->label('参会党员')
                     ->options(fn (RelationManager $livewire): array => Member::query()
-                        ->where('org_id', $livewire->getOwnerRecord()->org_id)
+                        ->visibleTo([$livewire->getOwnerRecord()->org_id])
                         ->where('status', '正常')
                         ->orderBy('name')
                         ->pluck('name', 'id')

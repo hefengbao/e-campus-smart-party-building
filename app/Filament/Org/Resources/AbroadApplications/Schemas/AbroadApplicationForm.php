@@ -29,7 +29,7 @@ class AbroadApplicationForm
                             ->options(fn (): array => Member::query()
                                 ->when(
                                     $orgIds = DataScope::visibleOrgIds(Auth::user()),
-                                    fn (Builder $query) => $query->whereIn('org_id', $orgIds),
+                                    fn (Builder $query) => $query->visibleTo($orgIds),
                                 )
                                 ->orderBy('name')
                                 ->pluck('name', 'id')

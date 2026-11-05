@@ -144,7 +144,7 @@ class Phase2ResourcesTest extends TestCase
         $this->be($user);
 
         $member = Member::query()
-            ->whereIn('org_id', $user->scopedOrgIds())
+            ->visibleTo($user->scopedOrgIds())
             ->whereDoesntHave('developmentCase')
             ->firstOrFail();
 
@@ -181,7 +181,7 @@ class Phase2ResourcesTest extends TestCase
         $this->be($user);
 
         $member = Member::query()
-            ->whereIn('org_id', $user->scopedOrgIds())
+            ->visibleTo($user->scopedOrgIds())
             ->whereDoesntHave('developmentCase')
             ->firstOrFail();
 
@@ -235,7 +235,7 @@ class Phase2ResourcesTest extends TestCase
         $user = $this->branchUser();
         $this->be($user);
 
-        $member = Member::query()->whereIn('org_id', $user->scopedOrgIds())->firstOrFail();
+        $member = Member::query()->visibleTo($user->scopedOrgIds())->firstOrFail();
         $oldPhone = $member->phone;
 
         $request = PhoneChangeRequest::create([

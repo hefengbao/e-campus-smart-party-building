@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -43,9 +44,12 @@ class Organization extends Model
         return $this->hasMany(OrganizationNameHistory::class)->latest('changed_on');
     }
 
-    public function members(): HasMany
+    public function members(): BelongsToMany
     {
-        return $this->hasMany(Member::class, 'org_id');
+        return $this->belongsToMany(Member::class, 'member_organization', 'organization_id', 'member_id')
+            ->withPivot(['is_primary', 'status', 'start_date', 'end_date'])
+            ->wherePivot('status', '正常')
+            ->withTimestamps();
     }
 
     /**
@@ -53,7 +57,7 @@ class Organization extends Model
      */
     public function activeMemberCount(): int
     {
-        return $this->members()->where('status', '正常')->count();
+        return $this->members()->where('members.status', '正常')->count();
     }
 
     /**
@@ -90,14 +94,21 @@ class Organization extends Model
             ->push($this->id);
 
         $activeMembers = Member::query()
-            ->whereIn('org_id', $descendantIds)
-            ->where('status', '正常')
+            ->whereHas('organizationLinks', fn (Builder $query) => $query
+                ->whereIn('organization_id', $descendantIds)
+                ->where('status', '正常'))
+            ->where('members.status', '正常')
             ->limit(5)
             ->get(['id', 'name']);
 
         return [
             'canRevoke' => $activeMembers->isEmpty(),
-            'activeMemberCount' => Member::query()->whereIn('org_id', $descendantIds)->where('status', '正常')->count(),
+            'activeMemberCount' => Member::query()
+                ->whereHas('organizationLinks', fn (Builder $query) => $query
+                    ->whereIn('organization_id', $descendantIds)
+                    ->where('status', '正常'))
+                ->where('members.status', '正常')
+                ->count(),
             'sampleNames' => $activeMembers->pluck('name')->all(),
         ];
     }

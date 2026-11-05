@@ -7,14 +7,21 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Member extends Model
 {
     /** @use HasFactory<MemberFactory> */
     use HasFactory, SoftDeletes;
+
+    private bool $hasPendingPrimaryOrganization = false;
+
+    private ?int $pendingPrimaryOrganizationId = null;
 
     /** 主键为工号/学号（字符串）。 */
     protected $primaryKey = 'id';
@@ -42,9 +49,105 @@ class Member extends Model
         'id_card' => 'encrypted',
     ];
 
-    public function organization(): BelongsTo
+    public function organization(): HasOneThrough
     {
-        return $this->belongsTo(Organization::class, 'org_id');
+        return $this->hasOneThrough(
+            Organization::class,
+            MemberOrganization::class,
+            'member_id',
+            'id',
+            'id',
+            'organization_id',
+        )
+            ->where('member_organization.is_primary', true)
+            ->where('member_organization.status', '正常');
+    }
+
+    public function organizations(): BelongsToMany
+    {
+        return $this->belongsToMany(Organization::class, 'member_organization', 'member_id', 'organization_id')
+            ->withPivot(['is_primary', 'status', 'start_date', 'end_date'])
+            ->withTimestamps();
+    }
+
+    public function organizationLinks(): HasMany
+    {
+        return $this->hasMany(MemberOrganization::class);
+    }
+
+    public function primaryOrganizationLink(): HasOne
+    {
+        return $this->hasOne(MemberOrganization::class)
+            ->where('is_primary', true)
+            ->where('status', '正常');
+    }
+
+    public function getOrgIdAttribute(): ?int
+    {
+        if ($this->hasPendingPrimaryOrganization) {
+            return $this->pendingPrimaryOrganizationId;
+        }
+
+        return $this->primaryOrganizationLink?->organization_id;
+    }
+
+    public function setOrgIdAttribute(mixed $value): void
+    {
+        $this->hasPendingPrimaryOrganization = true;
+        $this->pendingPrimaryOrganizationId = filled($value) ? (int) $value : null;
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $member): void {
+            if (! $member->hasPendingPrimaryOrganization) {
+                return;
+            }
+
+            $organizationId = $member->pendingPrimaryOrganizationId;
+            $member->hasPendingPrimaryOrganization = false;
+            $member->pendingPrimaryOrganizationId = null;
+            $member->setPrimaryOrganization($organizationId);
+        });
+    }
+
+    public function setPrimaryOrganization(Organization|int|null $organization): void
+    {
+        $organizationId = $organization instanceof Organization ? (int) $organization->getKey() : $organization;
+
+        DB::transaction(function () use ($organizationId): void {
+            $previousLinks = MemberOrganization::query()
+                ->where('member_id', $this->getKey())
+                ->where('is_primary', true)
+                ->when($organizationId !== null, fn ($query) => $query->where('organization_id', '!=', $organizationId))
+                ->get();
+
+            foreach ($previousLinks as $link) {
+                $link->update([
+                    'is_primary' => false,
+                    'status' => '已转出',
+                    'end_date' => now()->toDateString(),
+                ]);
+            }
+
+            if ($organizationId !== null) {
+                $link = MemberOrganization::query()->firstOrNew([
+                    'member_id' => $this->getKey(),
+                    'organization_id' => $organizationId,
+                ]);
+                $link->fill([
+                    'is_primary' => true,
+                    'status' => '正常',
+                    'start_date' => $link->start_date ?? now()->toDateString(),
+                    'end_date' => null,
+                ])->save();
+            }
+        });
+
+        $this->unsetRelation('organizations');
+        $this->unsetRelation('organizationLinks');
+        $this->unsetRelation('primaryOrganizationLink');
+        $this->unsetRelation('organization');
     }
 
     public function parentOrganization(): BelongsTo
@@ -151,6 +254,8 @@ class Member extends Model
             return $query;
         }
 
-        return $query->whereIn('org_id', $orgIds);
+        return $query->whereHas('organizationLinks', fn (Builder $linkQuery) => $linkQuery
+            ->whereIn('organization_id', $orgIds)
+            ->where('status', '正常'));
     }
 }
